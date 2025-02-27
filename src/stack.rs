@@ -24,6 +24,36 @@ pub struct NetStack {
 }
 
 impl NetStack {
+    /// Non-allocating version of stack_sink.send
+    ///
+    /// Using it should be safe, but I'm not sure yet
+    pub unsafe fn send(item: &[u8]) {
+        let _g = LWIP_MUTEX.lock();
+
+        let pbuf = pbuf_alloc(pbuf_layer_PBUF_RAW, item.len() as u16_t, pbuf_type_PBUF_RAM);
+        if pbuf.is_null() {
+            return;
+        }
+        pbuf_take(
+            pbuf,
+            item.as_ptr() as *const raw::c_void,
+            item.len() as u16_t,
+        );
+
+        if let Some(input_fn) = (*netif_list).input {
+            let err = input_fn(pbuf, netif_list);
+            if err == err_enum_t_ERR_OK as err_t {
+                return;
+            } else {
+                pbuf_free(pbuf);
+                return;
+            }
+        } else {
+            pbuf_free(pbuf);
+            return;
+        }
+    }
+
     pub fn new() -> Result<(Pin<Box<Self>>, Pin<Box<TcpListener>>, Pin<Box<UdpSocket>>), Error> {
         Ok((
             NetStack::_new(512),
