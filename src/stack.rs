@@ -24,9 +24,10 @@ pub struct NetStack {
 }
 
 impl NetStack {
-    /// Non-allocating version of stack_sink.send
+    /// Non-allocating version of `stack_sink.send`
     ///
-    /// Using it should be safe, but I'm not sure yet
+    /// # Safety
+    /// Caller must ensure that NetStack exists before calling this function
     pub unsafe fn send(item: &[u8]) {
         let _g = LWIP_MUTEX.lock();
 
