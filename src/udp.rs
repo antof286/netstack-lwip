@@ -160,7 +160,7 @@ impl RecvHalf {
             Some(pkt) => Ok(pkt),
             None => Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("recv_from udp socket faied: tx closed"),
+                "recv_from udp socket failed: tx closed".to_string(),
             )),
         }
     }
