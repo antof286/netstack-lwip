@@ -1,5 +1,4 @@
 mod lwip;
-mod mutex;
 mod output;
 mod stack;
 mod tcp_listener;
@@ -8,8 +7,7 @@ mod tcp_stream_context;
 mod udp;
 mod util;
 
-pub(crate) static LWIP_MUTEX: mutex::AtomicMutex = mutex::AtomicMutex::new();
-pub(crate) use mutex::AtomicMutexGuard as LWIPMutexGuard;
+pub(crate) static LWIP_MUTEX: spin::mutex::TicketMutex<()> = spin::mutex::TicketMutex::new(());
 
 pub use stack::NetStack;
 pub use tcp_listener::TcpListener;
