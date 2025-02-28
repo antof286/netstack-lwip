@@ -151,6 +151,12 @@ ip4_route_src(const ip4_addr_t *src, const ip4_addr_t *dest)
 struct netif *
 ip4_route(const ip4_addr_t *dest)
 {
+#if TUN2SOCKS
+  // go-tun2socks logic
+  // no routing and just use the default netif, netif_list[0], i.e., the loopif
+  // enable loopif by setting LWIP_HAVE_LOOPIF = 1 in lwipopts.h
+  return netif_list;
+#endif /* TUN2SOCKS */
 #if !LWIP_SINGLE_NETIF
   struct netif *netif;
 
@@ -407,6 +413,11 @@ return_noroute:
 static int
 ip4_input_accept(struct netif *netif)
 {
+#if TUN2SOCKS
+      // go-tun2socks logic
+      // all packets are accepted by the first one, and it should be the loopif
+      return 1;
+#endif /* TUN2SOCKS */
   LWIP_DEBUGF(IP_DEBUG, ("ip_input: iphdr->dest 0x%"X32_F" netif->ip_addr 0x%"X32_F" (0x%"X32_F", 0x%"X32_F", 0x%"X32_F")\n",
                          ip4_addr_get_u32(ip4_current_dest_addr()), ip4_addr_get_u32(netif_ip4_addr(netif)),
                          ip4_addr_get_u32(ip4_current_dest_addr()) & ip4_addr_get_u32(netif_ip4_netmask(netif)),

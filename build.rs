@@ -35,7 +35,6 @@ fn sdk_include_path() -> Option<String> {
 }
 
 fn compile_lwip() {
-    println!("cargo:rerun-if-changed=src/lwip");
     let mut build = cc::Build::new();
     build
         .file("src/lwip/core/init.c")
@@ -86,7 +85,6 @@ fn compile_lwip() {
 
 fn generate_lwip_bindings() {
     println!("cargo:rustc-link-lib=lwip");
-    // println!("cargo:rerun-if-changed=src/wrapper.h");
     println!("cargo:include=src/lwip/include");
 
     let sdk_include_path = sdk_include_path();
@@ -118,8 +116,8 @@ fn generate_lwip_bindings() {
 }
 
 fn main() {
-    if env::var("BINDINGS_GEN").is_ok() {
-        generate_lwip_bindings();
-    }
+    println!("cargo:rerun-if-changed=src/wrapper.h");
+    println!("cargo:rerun-if-changed=src/lwip");
+    generate_lwip_bindings();
     compile_lwip();
 }
