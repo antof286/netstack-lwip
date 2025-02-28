@@ -92,7 +92,7 @@ fn generate_lwip_bindings() {
     let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let mut builder = bindgen::Builder::default()
-        .header("src/wrapper.h")
+        .header("src/lwip/wrapper.h")
         .size_t_is_usize(false)
         .clang_arg("-I./src/lwip/include")
         .clang_arg("-I./src/lwip/custom")
@@ -116,7 +116,6 @@ fn generate_lwip_bindings() {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/wrapper.h");
     println!("cargo:rerun-if-changed=src/lwip");
     generate_lwip_bindings();
     compile_lwip();
