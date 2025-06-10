@@ -34,6 +34,38 @@ fn sdk_include_path() -> Option<String> {
     }
 }
 
+fn android_sysroot() -> Option<PathBuf> {
+    let target = env::var("TARGET").ok()?;
+    if !target.contains("-linux-android") {
+        return None;
+    }
+
+    let ndk_home = env::var("ANDROID_NDK_HOME")
+        .or_else(|_| env::var("NDK_HOME"))
+        .expect("Set ANDROID_NDK_HOME (or NDK_HOME) when building for Android");
+
+    let host_tag = if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") { "darwin-arm64" } else { "darwin-x86_64" }
+    } else if cfg!(target_os = "linux") {
+        if cfg!(target_arch = "aarch64") { "linux-aarch64" } else { "linux-x86_64" }
+    } else if cfg!(target_os = "windows") {
+        "windows-x86_64"
+    } else {
+        panic!("Unsupported host for Android NDK");
+    };
+
+    Some(
+        Path::new(&ndk_home)
+            .join("toolchains/llvm/prebuilt")
+            .join(host_tag)
+            .join("sysroot"),
+    )
+}
+
+fn android_api() -> String {
+    env::var("ANDROID_API").unwrap_or_else(|_| "21".into())
+}
+
 fn compile_lwip() {
     let mut build = cc::Build::new();
     build
@@ -79,7 +111,12 @@ fn compile_lwip() {
     if let Some(sdk_include_path) = sdk_include_path() {
         build.include(sdk_include_path);
     }
-    build.debug(true);
+    if let Some(sysroot) = android_sysroot() {
+        build.flag(&format!("--sysroot={}", sysroot.display()));
+        build.include(sysroot.join("usr/include"));
+        build.flag(&format!("-D__ANDROID_API__={}", android_api()));
+    }
+    
     build.compile("liblwip.a");
 }
 
@@ -105,6 +142,11 @@ fn generate_lwip_bindings() {
     }
     if let Some(sdk_include_path) = sdk_include_path {
         builder = builder.clang_arg(format!("-I{}", sdk_include_path));
+    }
+    if let Some(sysroot) = android_sysroot() {
+        builder = builder.clang_arg(&format!("--sysroot={}", sysroot.display()));
+        builder = builder.clang_arg(format!("-I{}", sysroot.join("usr/include").to_str().unwrap()));
+        builder = builder.clang_arg(&format!("-D__ANDROID_API__={}", android_api()));
     }
     let bindings = builder.generate().expect("Unable to generate bindings");
 
